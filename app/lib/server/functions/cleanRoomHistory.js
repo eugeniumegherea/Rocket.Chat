@@ -81,6 +81,9 @@ export const cleanRoomHistory = async function({ rid, latest = new Date(), oldes
 		roomId: rid,
 		fromUsers,
 		ignorePinned: excludePinned,
+		options: {
+			ts,
+		},
 	});
 
 	// clean up this and its method at Messages model since it's not used anymore
