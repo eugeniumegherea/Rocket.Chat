@@ -122,16 +122,6 @@ class RoomEventsModel extends EventsModel {
 		return super.createEvent(src, getContextQuery(roomId), stub);
 	}
 
-	public async getMessagesToPrune(roomId: string, options: any): Promise<Array<IEvent<IEDataMessage>>> {
-		const result: Array<IEvent<IEDataMessage>> = await this.model.rawCollection().find({ // TODO: put the IEvent interface here
-			rid: { $eq: roomId },
-			t: { $eq: EventTypeDescriptor.MESSAGE },
-			...options,
-		}).toArray();
-
-		return result;
-	}
-
 	public async createPruneMessagesEvent({
 		roomId,
 		fromUsers = [],

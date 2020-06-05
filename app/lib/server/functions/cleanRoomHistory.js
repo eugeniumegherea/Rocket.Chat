@@ -25,9 +25,12 @@ export const cleanRoomHistory = async function({ rid, latest = new Date(), oldes
 	// 	{ fields: { 'file._id': 1, pinned: 1 }, limit },
 	// );
 
-	const attachmentEventMessages = await RoomEvents.getMessagesToPrune(rid, {
+	const attachmentEventMessages = await RoomEvents.find({
+		rid: { $eq: rid },
 		ts,
 		'd.file._id': { $exists: 1 },
+		t: { $eq: 'msg' },
+		_deletedAt: { $exists: false },
 	});
 
 	attachmentEventMessages.forEach((item) => {
@@ -51,11 +54,14 @@ export const cleanRoomHistory = async function({ rid, latest = new Date(), oldes
 	}
 
 	if (!ignoreDiscussion) {
-		const discussionEvents = await RoomEvents.getMessagesToPrune(rid, {
-			ts,
+		const discussionEvents = await RoomEvents.find({
+			rid: { $eq: rid },
 			'd.drid': { $exists: true },
+			t: { $eq: 'msg' },
 			_deletedAt: { $exists: false },
+			ts,
 		});
+
 		discussionEvents.forEach((discussion) => {
 			const { d = {} } = discussion;
 			const { drid = '' } = d;
