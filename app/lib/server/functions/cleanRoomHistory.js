@@ -10,27 +10,34 @@ export const cleanRoomHistory = async function({ rid, latest = new Date(), oldes
 	const gt = inclusive ? '$gte' : '$gt';
 	const lt = inclusive ? '$lte' : '$lt';
 
-	// TODO: check if date filter is working
-	const ts = { [gt]: oldest, [lt]: latest };
+	const options = {
+		rid: { $eq: rid },
+		t: { $eq: 'msg' },
+		'd.t': { $in: ['msg'] },
+		ts: { [gt]: oldest, [lt]: latest },
+		'd.u.username': { $exists: true }, // this changes below if necessary
+		_deletedAt: { $exists: false }, // since we don't need something is already deleted
+	};
+	if (!excludePinned) {
+		options['d.t'].$in.push('message_pinned');
+	} else {
+		options['d.pinned'] = { $exists: false };
+	}
 
-	const text = `_${ TAPi18n.__('File_removed_by_prune') }_`;
+	// change first defined users value in case there are a fromUsers option selected
+	if (fromUsers && fromUsers.length) {
+		options['d.u.username'] = { $in: fromUsers };
+	}
+
+	console.log('cleanRoomHistory options', options);
+
+	const prunedText = `_${ TAPi18n.__('File_removed_by_prune') }_`;
 
 	let fileCount = 0;
-	// const attachmentMessages = await Messages.findFilesByRoomIdPinnedTimestampAndUsers(
-	// 	rid,
-	// 	excludePinned,
-	// 	ignoreDiscussion,
-	// 	ts,
-	// 	fromUsers,
-	// 	{ fields: { 'file._id': 1, pinned: 1 }, limit },
-	// );
 
 	const attachmentEventMessages = await RoomEvents.find({
-		rid: { $eq: rid },
-		ts,
 		'd.file._id': { $exists: 1 },
-		t: { $eq: 'msg' },
-		_deletedAt: { $exists: false },
+		...options,
 	});
 
 	attachmentEventMessages.forEach((item) => {
@@ -44,7 +51,8 @@ export const cleanRoomHistory = async function({ rid, latest = new Date(), oldes
 				_id: item._id,
 			}, {
 				$unset: { 'd.file': 1 },
-				$set: { 'd.attachments': [{ color: '#FD745E', text }] },
+				$set: { 'd.attachments': [{ color: '#FD745E', prunedText }] },
+				$currentDate: { _deletedAt: true },
 			});
 		}
 	});
@@ -55,11 +63,8 @@ export const cleanRoomHistory = async function({ rid, latest = new Date(), oldes
 
 	if (!ignoreDiscussion) {
 		const discussionEvents = await RoomEvents.find({
-			rid: { $eq: rid },
 			'd.drid': { $exists: true },
-			t: { $eq: 'msg' },
-			_deletedAt: { $exists: false },
-			ts,
+			...options,
 		});
 
 		discussionEvents.forEach((discussion) => {
@@ -75,32 +80,19 @@ export const cleanRoomHistory = async function({ rid, latest = new Date(), oldes
 			deleteRoom(drid);
 			fileCount += 1;
 		});
-
-		// Messages.findDiscussionByRoomIdPinnedTimestampAndUsers(rid, excludePinned, ts, fromUsers, { fields: { drid: 1 }, ...limit && { limit } }).fetch()
-		// 	.forEach((payload) => {
-		// 		const { drid } = payload;
-		// 		deleteRoom(drid);
-		// 	});
 	}
 
-	const result = await RoomEvents.createPruneMessagesEvent({
-		roomId: rid,
-		fromUsers,
-		ignorePinned: excludePinned,
-		options: {
-			ts,
-		},
-	});
+	const result = await RoomEvents.createPruneMessagesEvent(options);
 
 	// clean up this and its method at Messages model since it's not used anymore
 	// const count = Messages.removeByIdPinnedTimestampLimitAndUsers(rid, excludePinned, ignoreDiscussion, ts, limit, fromUsers);
-	if (result.count) {
+	if (result.count || fileCount) {
 		Rooms.resetLastMessageById(rid);
 		Notifications.notifyRoom(rid, 'deleteMessageBulk', {
 			rid,
 			excludePinned,
 			ignoreDiscussion,
-			ts,
+			ts: options.ts,
 			users: fromUsers,
 		});
 	}

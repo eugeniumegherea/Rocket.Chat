@@ -122,33 +122,10 @@ class RoomEventsModel extends EventsModel {
 		return super.createEvent(src, getContextQuery(roomId), stub);
 	}
 
-	public async createPruneMessagesEvent({
-		roomId,
-		fromUsers = [],
-		ignorePinned,
-		options = {},
-	}: {
-		roomId: string;
-		fromUsers: Array<string>;
-		ignorePinned: boolean;
-		options: any;
-	}): Promise<{ count: number }> {
-		const dataType = [EventMessageTypeDescriptor.MESSAGE];
-		if (!ignorePinned) {
-			dataType.push(EventMessageTypeDescriptor.MESSAGE_PINNED);
-		} else {
-			// just when it is for specifically ignore it sets to get only messages where this field doesn't exist
-			options['d.pinned'] = { $exists: false };
-		}
-
+	public async createPruneMessagesEvent(options: any): Promise<{ count: number }> {
 		const { result }: any = await this.model.rawCollection().updateMany({
-			rid: { $eq: roomId },
-			t: { $eq: EventTypeDescriptor.MESSAGE },
 			'd.msg': { $exists: 1 },
 			'd.drid': { $exists: 0 },
-			'd.u.username': fromUsers.length ? { $in: fromUsers } : { $exists: 1 },
-			'd.t': { $in: dataType },
-			_deletedAt: { $exists: false },
 			...options,
 		}, {
 			$set: {
