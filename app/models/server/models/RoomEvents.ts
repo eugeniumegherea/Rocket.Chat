@@ -2,7 +2,7 @@ import _ from 'lodash';
 import { TAPi18n } from 'meteor/rocketchat:tap-i18n';
 
 import { IEDataRoom } from '../../../events/definitions/data/IEDataRoom';
-import { IEDataMessage, EventMessageTypeDescriptor } from '../../../events/definitions/data/IEDataMessage';
+import { IEDataMessage } from '../../../events/definitions/data/IEDataMessage';
 import { EDataDefinition, EventTypeDescriptor, IEData, IEvent } from '../../../events/definitions/IEvent';
 import { IRoom } from '../../../events/definitions/IRoom';
 import { getLocalSrc } from '../../../events/server/lib/getLocalSrc';
@@ -103,6 +103,7 @@ class RoomEventsModel extends EventsModel {
 	public async createDeleteMessageEvent(src: string, roomId: string, _cid?: string): Promise<IEvent<IEDataUpdate<IEDataEmpty>>> {
 		src = this.ensureSrc(src);
 
+		console.log('createDeleteMessageEvent srsc', src);
 		const stub: IEventStub<IEDataUpdate<IEDataEmpty>> = {
 			_cid,
 			t: EventTypeDescriptor.DELETE_MESSAGE,
