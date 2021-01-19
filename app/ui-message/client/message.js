@@ -242,7 +242,12 @@ Template.message.helpers({
 	sourceLanguage() {
 		const instance = Template.instance();
 		const { translations } = instance.data.msg;
-		return translations ? `(${ translations.sourceLanguage })` : '';
+		return translations && translations.sourceLanguage ? `(${ translations.sourceLanguage })` : '';
+	},
+	targetLanguage() {
+		const instance = Template.instance();
+		const { translations } = instance.data.msg;
+		return translations && translations.targetLanguage ? `(${ translations.targetLanguage })` : '';
 	},
 	fromAgent() {
 		const userId = Meteor.userId();

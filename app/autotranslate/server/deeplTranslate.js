@@ -154,6 +154,7 @@ class DeeplAutoTranslate extends AutoTranslate {
 					if (translatedLang) {
 						translations.sourceLanguage = translatedLang.slice(0, 2);
 					}
+					translations.targetLanguage = language.toUpperCase();
 				}
 			} catch (e) {
 				SystemLogger.error('Error translating message', e);

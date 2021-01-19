@@ -62,10 +62,10 @@
 						</span>
 					{{/if}}
 
-					{{#if $and fromAgent sourceLanguage}}
+					{{#if $and fromAgent targetLanguage}}
 						<span class="translated">
 							<i class="icon-language {{#if msg.autoTranslateFetching}}loading{{/if}}" title="{{_ "Translated"}}"></i>
-							<span class="translation-provider">{{ sourceLanguage }}</span>
+							<span class="translation-provider">{{ targetLanguage }}</span>
 						</span>
 					{{/if}}
 
