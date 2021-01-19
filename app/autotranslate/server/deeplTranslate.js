@@ -150,6 +150,10 @@ class DeeplAutoTranslate extends AutoTranslate {
 						.map((translation, index) => (translation.detected_source_language !== language ? translation.text : msgs[index]))
 						.join('\n');
 					translations[language] = this.deTokenize(Object.assign({}, message, { msg: translatedText }));
+					const translatedLang = ((result.data.translations || [])[0] || {}).detected_source_language;
+					if (translatedLang) {
+						translations.sourceLanguage = translatedLang.slice(0, 2);
+					}
 				}
 			} catch (e) {
 				SystemLogger.error('Error translating message', e);

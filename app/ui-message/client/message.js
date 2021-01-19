@@ -1,5 +1,6 @@
 import _ from 'underscore';
 import s from 'underscore.string';
+import { Meteor } from 'meteor/meteor';
 import { Tracker } from 'meteor/tracker';
 import { Template } from 'meteor/templating';
 import { Session } from 'meteor/session';
@@ -237,6 +238,17 @@ Template.message.helpers({
 		const instance = Template.instance();
 		const { translationProvider } = instance.data.msg;
 		return translationProvider && AutoTranslate.providersMetadata[translationProvider]?.displayName;
+	},
+	sourceLanguage() {
+		const instance = Template.instance();
+		const { translations } = instance.data.msg;
+		return translations ? `(${ translations.sourceLanguage })` : '';
+	},
+	fromAgent() {
+		const userId = Meteor.userId();
+		const instance = Template.instance();
+		const { u = {} } = instance.data.msg;
+		return userId === u._id;
 	},
 	edited() {
 		const { msg } = this;

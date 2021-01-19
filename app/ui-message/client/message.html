@@ -58,9 +58,17 @@
 					{{#if showTranslated}}
 						<span class="translated">
 							<i class="icon-language {{#if msg.autoTranslateFetching}}loading{{/if}}" title="{{_ "Translated"}}"></i>
-							<span class="translation-provider">{{ translationProvider }}</span>
+							<span class="translation-provider">{{ sourceLanguage }}</span>
 						</span>
 					{{/if}}
+
+					{{#if $and fromAgent sourceLanguage}}
+						<span class="translated">
+							<i class="icon-language {{#if msg.autoTranslateFetching}}loading{{/if}}" title="{{_ "Translated"}}"></i>
+							<span class="translation-provider">{{ sourceLanguage }}</span>
+						</span>
+					{{/if}}
+
 					{{#if msg.sentByEmail}}
 						<span class="sent-by-email">
 							<i class="icon-mail" title='{{_ "Message_sent_by_email"}}'></i>
