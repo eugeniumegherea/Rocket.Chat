@@ -8,6 +8,7 @@ RUN groupadd -g 65533 -r rocketchat \
     && mkdir -p /app/uploads \
     && chown rocketchat:rocketchat /app/uploads \
     && apt-get update \
+    && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends fontconfig
 
 ADD . /app
