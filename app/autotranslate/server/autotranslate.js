@@ -7,9 +7,13 @@ import { callbacks } from '../../callbacks';
 import { Subscriptions, Messages } from '../../models';
 import { Markdown } from '../../markdown/server';
 import { Logger } from '../../logger';
+import { LivechatVisitors } from '../../models/server/raw';
 
 const Providers = Symbol('Providers');
 const Provider = Symbol('Provider');
+const TelRe = /^\+?[1-9]\d{1,14}$/;
+// eslint-disable-next-line no-control-regex
+const EmailRe = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
 
 /**
  * This class allows translation providers to
@@ -270,7 +274,18 @@ export class AutoTranslate {
 		} else {
 			targetLanguages = Subscriptions.getAutoTranslateLanguagesByRoomAndNotUser(room._id, message.u && message.u._id);
 		}
-		if (message.msg) {
+
+		let shouldTranslate = true;
+
+		if (message.msg && (TelRe.test(message.msg) || EmailRe.test(message.msg))) {
+			shouldTranslate = false;
+		} else if (room.v._id === message.u._id) {
+			// we want to conditionally translate only client messages
+			const visitor = Promise.await(LivechatVisitors.findOneById(room.v._id));
+			shouldTranslate = (visitor?.livechatData?.language || 'en').slice(0, 2) !== 'en';
+		}
+
+		if (message.msg && shouldTranslate) {
 			Meteor.defer(() => {
 				let targetMessage = Object.assign({}, message);
 				targetMessage.html = s.escapeHTML(String(targetMessage.msg));
@@ -283,7 +298,7 @@ export class AutoTranslate {
 			});
 		}
 
-		if (message.attachments && message.attachments.length > 0) {
+		if (message.attachments && message.attachments.length > 0 && shouldTranslate) {
 			Meteor.defer(() => {
 				for (const index in message.attachments) {
 					if (message.attachments.hasOwnProperty(index)) {
