@@ -19,27 +19,28 @@ class CustomOplogHandle {
 	usingChangeStream: boolean;
 
 	async isChangeStreamAvailable(): Promise<boolean> {
-		if (process.env.IGNORE_CHANGE_STREAM) {
-			return false;
-		}
+		// if (process.env.IGNORE_CHANGE_STREAM) {
+		// 	return false;
+		// }
 
-		const { mongo } = MongoInternals.defaultRemoteCollectionDriver();
+		// const { mongo } = MongoInternals.defaultRemoteCollectionDriver();
 
-		try {
-			const { version, storageEngine } = await mongo.db.command({ serverStatus: 1 });
+		// try {
+		// 	const { version, storageEngine } = await mongo.db.command({ serverStatus: 1 });
 
-			if (!storageEngine || storageEngine.name !== 'wiredTiger' || !semver.satisfies(semver.coerce(version) || '', '>=3.6.0')) {
-				return false;
-			}
+		// 	if (!storageEngine || storageEngine.name !== 'wiredTiger' || !semver.satisfies(semver.coerce(version) || '', '>=3.6.0')) {
+		// 		return false;
+		// 	}
 
-			await mongo.db.admin().command({ replSetGetStatus: 1 });
-		} catch (e) {
-			if (e.message.startsWith('not authorized')) {
-				console.info('Change Stream is available for your installation, give admin permissions to your database user to use this improved version.');
-			}
-			return false;
-		}
+		// 	await mongo.db.admin().command({ replSetGetStatus: 1 });
+		// } catch (e) {
+		// 	if (e.message.startsWith('not authorized')) {
+		// 		console.info('Change Stream is available for your installation, give admin permissions to your database user to use this improved version.');
+		// 	}
+		// 	return false;
+		// }
 
+		// We are going to deploy on atlas so there is a guarantee that the change stream is available
 		return true;
 	}
 
