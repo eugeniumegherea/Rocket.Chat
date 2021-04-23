@@ -1,6 +1,10 @@
+import { createHash } from 'crypto';
+
 import { Meteor } from 'meteor/meteor';
 import _ from 'underscore';
 import s from 'underscore.string';
+import LRU from 'lru-cache';
+
 
 import { settings } from '../../settings';
 import { callbacks } from '../../callbacks';
@@ -14,6 +18,15 @@ const Provider = Symbol('Provider');
 const TelRe = /^\+?[1-9]\d{1,14}$/;
 // eslint-disable-next-line no-control-regex
 const EmailRe = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
+
+const translationCache = new LRU({
+	max: 500,
+	maxAge: 3600000, // 1 hours
+});
+
+function hash(text) {
+	return createHash('md5').update(text.trim().toLowerCase()).digest('hex');
+}
 
 /**
  * This class allows translation providers to
@@ -276,6 +289,7 @@ export class AutoTranslate {
 		}
 
 		let shouldTranslate = true;
+		const translationKey = hash(`${ targetLanguages[0] }-${ (message || {}).msg || '' }`);
 
 		if (message.msg && (TelRe.test(message.msg) || EmailRe.test(message.msg))) {
 			shouldTranslate = false;
@@ -283,6 +297,22 @@ export class AutoTranslate {
 			// we want to conditionally translate only client messages
 			const visitor = Promise.await(LivechatVisitors.findOneById(room.v._id));
 			shouldTranslate = (visitor?.livechatData?.language || 'en').slice(0, 2) !== 'en';
+		}
+
+		if (message.msg) {
+			/**
+			 * @type {{ translation: { sourceLanguage: string, targetLanguage: string, [key: string]: string } }}
+			*/
+			const cachedTranslation = translationCache.get(translationKey);
+			if (cachedTranslation) {
+				shouldTranslate = false;
+
+				Meteor.defer(() => {
+					if (!_.isEmpty(cachedTranslation)) {
+						Messages.addTranslations(message._id, cachedTranslation, TranslationProviderRegistry[Provider]);
+					}
+				});
+			}
 		}
 
 		if (message.msg && shouldTranslate) {
@@ -293,6 +323,7 @@ export class AutoTranslate {
 
 				const translations = this._translateMessage(targetMessage, targetLanguages);
 				if (!_.isEmpty(translations)) {
+					translationCache.set(translationKey, translations);
 					Messages.addTranslations(message._id, translations, TranslationProviderRegistry[Provider]);
 				}
 			});
