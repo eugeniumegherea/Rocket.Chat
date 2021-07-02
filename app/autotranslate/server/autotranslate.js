@@ -292,7 +292,7 @@ export class AutoTranslate {
 		let shouldTranslate = true;
 		const translationKey = hash(`${ targetLanguages[0] }-${ (message || {}).msg || '' }`);
 
-		if (message.msg && (TelRe.test(message.msg) || EmailRe.test(message.msg) || UrlRe.text(message.msg))) {
+		if (message.msg && (TelRe.test(message.msg) || EmailRe.test(message.msg) || UrlRe.test(message.msg))) {
 			shouldTranslate = false;
 		} else if (room.v._id === message.u._id) {
 			// we want to conditionally translate only client messages
